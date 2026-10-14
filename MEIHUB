@@ -1,7 +1,6 @@
 --==================================================
 -- MEI HUB V2
--- MEIONTOP
--- BEST SCRIPT
+-- Key: MEI
 --==================================================
 
 local Players = game:GetService("Players")
@@ -18,11 +17,11 @@ local ICON_ID = "rbxassetid://102713725301663"
 
 local Config = {
 	AimEnabled=false, ESPEnabled=false, TeamCheck=true, WallCheck=true,
-	ShowFOV=true, GodMode=false, InfiniteAmmo=false, NoReload=false,
+	ShowFOV=true, GodMode=false,
 	AimStrength=50, FOVPercent=50, AimTarget="Head",
 	ShowNames=true, ShowHealth=true, ShowDistance=true, ShowHighlight=true,
-	Theme="Purple", UITransparency=0, UIScale=1,
-	ShowFloatingIcon=true, UIAnimations=true, TrainingHitbox=false, BigHead=false,
+	Theme="Purple", ShowFloatingIcon=true, UIAnimations=true,
+	TrainingHitbox=false, BigHead=false,
 }
 
 local Themes = {
@@ -69,26 +68,7 @@ for _,name in ipairs({"MEI_HUB_V1","MEI_HUB_V2","MEI_KeySystem","MEI_Float"}) do
 end
 
 --==================================================
--- AUTO-RUN PREREQUISITES
---==================================================
-
-local function RunPrerequisites()
-	Camera=workspace.CurrentCamera
-	while not Camera do
-		task.wait()
-		Camera=workspace.CurrentCamera
-	end
-
-	local character=LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	character:WaitForChild("Humanoid")
-	character:WaitForChild("HumanoidRootPart")
-
-	task.wait()
-	return true
-end
-
---==================================================
--- MEI KEY SYSTEM
+-- KEY SYSTEM
 --==================================================
 
 local KeyGui=New("ScreenGui",{Name="MEI_KeySystem",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling},PlayerGui)
@@ -105,7 +85,7 @@ local Unlock=New("TextButton",{Position=UDim2.fromOffset(30,130),Size=UDim2.new(
 Round(Unlock,8)
 
 --==================================================
--- MAIN
+-- MAIN GUI
 --==================================================
 
 local Gui=New("ScreenGui",{Name="MEI_HUB_V2",ResetOnSpawn=false,Enabled=false,IgnoreGuiInset=true,ZIndexBehavior=Enum.ZIndexBehavior.Sibling},PlayerGui)
@@ -151,7 +131,6 @@ end
 local MainPage=CreatePage("MAIN")
 local ESPPage=CreatePage("ESP")
 local TrainingPage=CreatePage("TRAINING")
-local MiscPage=CreatePage("MISC")
 local SettingsPage=CreatePage("SETTINGS")
 local AboutPage=CreatePage("ABOUT")
 
@@ -159,7 +138,7 @@ local function ShowPage(name)
 	for n,p in pairs(PageObjects) do p.Visible=(n==name) end
 end
 
-for i,name in ipairs({"MAIN","ESP","TRAINING","MISC","SETTINGS","ABOUT"}) do
+for i,name in ipairs({"MAIN","ESP","TRAINING","SETTINGS","ABOUT"}) do
 	local b=New("TextButton",{Position=UDim2.fromOffset(8,8+(i-1)*43),Size=UDim2.new(1,-16,0,36),BackgroundColor3=Theme.Main,Text=name,TextColor3=Theme.Text,TextSize=11,Font=Enum.Font.GothamBold},Sidebar)
 	Round(b,7)
 	b.MouseButton1Click:Connect(function() ShowPage(name) end)
@@ -182,7 +161,6 @@ local function Toggle(parent,text,default,callback)
 		b.BackgroundColor3=state and Theme.Accent or Color3.fromRGB(80,80,85)
 		if callback then callback(state) end
 	end)
-	return holder
 end
 
 local function Slider(parent,text,min,max,default,callback)
@@ -213,7 +191,7 @@ local function Slider(parent,text,min,max,default,callback)
 end
 
 --==================================================
--- MEI MAIN
+-- MAIN PAGE
 --==================================================
 
 Section(MainPage,"AIM")
@@ -250,77 +228,13 @@ Toggle(ESPPage,"Health ESP",Config.ShowHealth,function(v) Config.ShowHealth=v en
 Toggle(ESPPage,"Distance ESP",Config.ShowDistance,function(v) Config.ShowDistance=v end)
 Toggle(ESPPage,"Highlight ESP",Config.ShowHighlight,function(v) Config.ShowHighlight=v end)
 Toggle(ESPPage,"Team Check",Config.TeamCheck,function(v) Config.TeamCheck=v end)
-Toggle(ESPPage,"Wall Check",Config.WallCheck,function(v) Config.WallCheck=v end)
-
-local TEAM_MARKERS = {
-	"StageTeamSide", "Team", "TeamName", "TeamColor",
-	"TeamId", "TeamID", "team"
-}
-
-local function ReadTeamMarker(inst)
-	if not inst then return nil end
-	for _,name in ipairs(TEAM_MARKERS) do
-		local attr=inst:GetAttribute(name)
-		if attr~=nil then
-			return name.."="..tostring(attr)
-		end
-		local child=inst:FindFirstChild(name)
-		if child and child:IsA("ValueBase") then
-			return name.."="..tostring(child.Value)
-		end
-	end
-	return nil
-end
-
-local function GetCustomTeamIdentity(player)
-	if not player then return nil end
-	local marker=ReadTeamMarker(player) or ReadTeamMarker(player.Character)
-	if marker then return marker end
-	local stats=player:FindFirstChild("leaderstats")
-	marker=ReadTeamMarker(stats)
-	if marker then return marker end
-	if not player.Neutral then
-		return "TeamColor="..tostring(player.TeamColor)
-	end
-	return nil
-end
-
-local customTeamCache={count=0,at=0}
-
-local function GetCustomTeamCount()
-	local now=os.clock()
-	if now-customTeamCache.at>0.5 then
-		local seen={}
-		local count=0
-		for _,player in ipairs(Players:GetPlayers()) do
-			local identity=GetCustomTeamIdentity(player)
-			if identity and not seen[identity] then
-				seen[identity]=true
-				count=count+1
-			end
-		end
-		customTeamCache.count=count
-		customTeamCache.at=now
-	end
-	return customTeamCache.count
-end
-
-local function GetTeamKey(player)
-	if player and player.Team then
-		return "team:"..player.Team.Name
-	end
-	return GetCustomTeamIdentity(player)
-end
 
 local function IsTeammate(player)
 	if not player or player==LocalPlayer then return false end
 	if LocalPlayer.Team and player.Team then
 		return LocalPlayer.Team==player.Team
 	end
-	local localTeam=GetCustomTeamIdentity(LocalPlayer)
-	local targetTeam=GetCustomTeamIdentity(player)
-	if not localTeam or not targetTeam then return false end
-	return GetCustomTeamCount()>=2 and localTeam==targetTeam
+	return false
 end
 
 local function IsEnemy(player)
@@ -391,6 +305,7 @@ local function UpdateESP()
 		end
 	end
 end
+
 Players.PlayerAdded:Connect(function(p)
 	p.CharacterAdded:Connect(function() task.wait(.5); if Config.ESPEnabled then CreateESP(p) end end)
 end)
@@ -405,15 +320,15 @@ Section(TrainingPage,"TRAINING DUMMIES")
 Toggle(TrainingPage,"Training Hitbox",Config.TrainingHitbox,function(v) Config.TrainingHitbox=v end)
 Toggle(TrainingPage,"Big Head",Config.BigHead,function(v) Config.BigHead=v end)
 
-local DummyFolder=workspace:FindFirstChild("TrainingDummies")
 local function ApplyDummySettings()
-	if not DummyFolder then return end
-	for _,dummy in ipairs(DummyFolder:GetChildren()) do
+	local dummyFolder=workspace:FindFirstChild("TrainingDummies")
+	if not dummyFolder then return end
+	for _,dummy in ipairs(dummyFolder:GetChildren()) do
 		if dummy:IsA("Model") then
 			local h=dummy:FindFirstChildOfClass("Humanoid")
 			if h then
 				for _,part in ipairs(dummy:GetDescendants()) do
-					if part:IsA("BasePart") then
+					if part:IsA("BasePart") and part.Name~="Head" then
 						if not part:GetAttribute("MEI_OriginalSize") then part:SetAttribute("MEI_OriginalSize",part.Size) end
 						local original=part:GetAttribute("MEI_OriginalSize")
 						part.Size=Config.TrainingHitbox and original*2 or original
@@ -430,26 +345,32 @@ local function ApplyDummySettings()
 	end
 end
 
+task.spawn(function()
+	while true do
+		task.wait(2)
+		pcall(ApplyDummySettings)
+	end
+end)
+
 --==================================================
--- DAMAGE / HIT / DPS COUNTER
+-- DAMAGE COUNTER
 --==================================================
 
 local SessionDamage=0
 local SessionHits=0
 local DPSDamage=0
 local DPSWindowStart=os.clock()
-local DPSValue=0
 
-local CounterFrame=New("Frame",{Position=UDim2.fromOffset(10,10),Size=UDim2.fromOffset(190,130),BackgroundColor3=Theme.Main,Visible=false,ZIndex=20},Gui)
+local CounterFrame=New("Frame",{Position=UDim2.fromOffset(10,10),Size=UDim2.fromOffset(190,130),BackgroundColor3=Theme.Main,Visible=true,ZIndex=20},Gui)
 Round(CounterFrame,10); Stroke(CounterFrame,Theme.Accent,1)
 local DamageText=New("TextLabel",{Position=UDim2.fromOffset(10,5),Size=UDim2.new(1,-20,0,25),BackgroundTransparency=1,Text="Damage: 0",TextColor3=Theme.Text,TextSize=13,Font=Enum.Font.GothamBold,TextXAlignment=Enum.TextXAlignment.Left},CounterFrame)
 local HitText=New("TextLabel",{Position=UDim2.fromOffset(10,32),Size=UDim2.new(1,-20,0,25),BackgroundTransparency=1,Text="Hits: 0",TextColor3=Theme.Text,TextSize=13,Font=Enum.Font.GothamBold,TextXAlignment=Enum.TextXAlignment.Left},CounterFrame)
-local DPSText=New("TextLabel",{Position=UDim2.fromOffset(10,59),Size=UDim2.new(1,-20,0,25),BackgroundTransparency=1,Text="DPS: 0",TextColor3=Theme.Text,TextSize=13,Font=Enum.Font.GothamBold,TextXAligment.Left},CounterFrame)
+local DPSText=New("TextLabel",{Position=UDim2.fromOffset(10,59),Size=UDim2.new(1,-20,0,25),BackgroundTransparency=1,Text="DPS: 0",TextColor3=Theme.Text,TextSize=13,Font=Enum.Font.GothamBold,TextXAlignment=Enum.TextXAlignment.Left},CounterFrame)
 local ResetCounterBtn=New("TextButton",{Position=UDim2.fromOffset(10,92),Size=UDim2.new(1,-20,0,28),BackgroundColor3=Theme.Accent,Text="RESET",TextColor3=Theme.Text,TextSize=11,Font=Enum.Font.GothamBold},CounterFrame)
 Round(ResetCounterBtn,6)
 
 ResetCounterBtn.MouseButton1Click:Connect(function()
-	SessionDamage=0; SessionHits=0; DPSDamage=0; DPSValue=0
+	SessionDamage=0; SessionHits=0; DPSDamage=0
 	DPSWindowStart=os.clock()
 	DamageText.Text="Damage: 0"; HitText.Text="Hits: 0"; DPSText.Text="DPS: 0"
 end)
@@ -476,8 +397,10 @@ local function TrackHumanoid(h)
 end
 
 local function ScanHumans()
+	local myChar = LocalPlayer.Character
+	local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
 	for _,obj in ipairs(workspace:GetDescendants()) do
-		if obj:IsA("Humanoid") and obj~=LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+		if obj:IsA("Humanoid") and obj ~= myHum then
 			TrackHumanoid(obj)
 		end
 	end
@@ -486,11 +409,10 @@ end
 task.spawn(function()
 	while true do
 		task.wait(1)
-		ScanHumans()
+		pcall(ScanHumans)
 		local elapsed=os.clock()-DPSWindowStart
 		if elapsed>=1 then
-			DPSValue=DPSDamage/elapsed
-			DPSText.Text="DPS: "..math.floor(DPSValue)
+			DPSText.Text="DPS: "..math.floor(DPSDamage/elapsed)
 			DPSDamage=0
 			DPSWindowStart=os.clock()
 		end
@@ -498,13 +420,13 @@ task.spawn(function()
 end)
 
 --==================================================
--- FLOATING ICON BUTTON
+-- FLOATING ICON
 --==================================================
 
 local FloatGui=New("ScreenGui",{Name="MEI_Float",ResetOnSpawn=false,Enabled=false,IgnoreGuiInset=true,ZIndexBehavior=Enum.ZIndexBehavior.Sibling},PlayerGui)
-local FloatButton=New("ImageButton",{Size=UDim2.fromOffset(50,50),Position=UDim2.fromOffset(20,300),BackgroundColor3=Theme.Main,Image=ICON_ID,ImageColor3=Color3.new(1,1,1),AutoButtonColor=false},FloatGui)
-Round(FloatButton,25); Stroke(FloatButton,Theme.Accent,1.5)
-New("UICorner",{CornerRadius=UDim.new(1,0)},FloatButton)
+local FloatButton=New("ImageButton",{Size=UDim2.fromOffset(50,50),Position=UDim2.fromOffset(20,300),BackgroundColor3=Theme.Main,Image=ICON_ID,AutoButtonColor=false},FloatGui)
+Round(FloatButton,25)
+Stroke(FloatButton,Theme.Accent,1.5)
 
 do
 	local dragging=false, moved=false
@@ -549,15 +471,21 @@ local ThemeButton=New("TextButton",{Position=UDim2.new(1,-110,.5,-14),Size=UDim2
 Round(ThemeButton,6)
 ThemeButton.MouseButton1Click:Connect(function()
 	CurrentTheme=CurrentTheme%#ThemeNames+1; Config.Theme=ThemeNames[CurrentTheme]; Theme=Themes[Config.Theme]
-	ThemeButton.Text=Config.Theme; Main.BackgroundColor3=Theme.Main; Header.BackgroundColor3=Theme.Panel; Sidebar.BackgroundColor3=Theme.Panel
+	ThemeButton.Text=Config.Theme
+	Main.BackgroundColor3=Theme.Main
+	Header.BackgroundColor3=Theme.Panel
+	Sidebar.BackgroundColor3=Theme.Panel
+	CounterFrame.BackgroundColor3=Theme.Main
 end)
 
 local ResetButton=New("TextButton",{Size=UDim2.new(1,-5,0,40),BackgroundColor3=Color3.fromRGB(120,50,50),Text="RESET SETTINGS",TextColor3=Theme.Text,TextSize=12,Font=Enum.Font.GothamBold},SettingsPage)
 Round(ResetButton,7)
 ResetButton.MouseButton1Click:Connect(function()
-	Config.AimEnabled=false; Config.ESPEnabled=false; Config.GodMode=false; Config.InfiniteAmmo=false; Config.NoReload=false; Config.TrainingHitbox=false; Config.BigHead=false
+	Config.AimEnabled=false; Config.ESPEnabled=false; Config.GodMode=false
 	Config.AimStrength=50; Config.FOVPercent=50; Config.AimTarget="Head"
 	for p in pairs(ESPObjects) do RemoveESP(p) end
+	DamageText.Text="Damage: 0"; HitText.Text="Hits: 0"; DPSText.Text="DPS: 0"
+	SessionDamage=0; SessionHits=0; DPSDamage=0
 end)
 
 --==================================================
@@ -568,27 +496,29 @@ New("ImageLabel",{Size=UDim2.fromOffset(90,90),BackgroundTransparency=1,Image=IC
 New("TextLabel",{Size=UDim2.new(1,-5,0,35),BackgroundTransparency=1,Text="MEI HUB",TextColor3=Theme.Text,TextSize=21,Font=Enum.Font.GothamBold},AboutPage)
 New("TextLabel",{Size=UDim2.new(1,-5,0,35),BackgroundTransparency=1,Text="SCRIPT BY MEI",TextColor3=Theme.Muted,TextSize=13,Font=Enum.Font.GothamBold},AboutPage)
 
-local TikTokBox=New("TextBox",{Size=UDim2.new(1,-20,0,42),BackgroundColor3=Theme.Panel,TextColor3=Theme.Text,PlaceholderColor3=Theme.Muted,Text="www.tiktok.com/@pepitomanalotodump",TextSize=12,Font=Enum.Font.Gotham,ClearTextOnFocus=false,TextEditable=false,Selectable=true,TextWrapped=false},AboutPage)
+local TikTokBox=New("TextBox",{Size=UDim2.new(1,-20,0,42),BackgroundColor3=Theme.Panel,TextColor3=Theme.Text,Text="www.tiktok.com/@pepitomanalotodump",TextSize=12,Font=Enum.Font.Gotham,ClearTextOnFocus=false,TextEditable=false,Selectable=true},AboutPage)
 Round(TikTokBox,7); Stroke(TikTokBox,Theme.Accent,1)
 
-New("TextLabel",{Size=UDim2.new(1,-20,0,28),BackgroundTransparency=1,Text="Tap the account text to select it, then Copy.",TextColor3=Theme.Muted,TextSize=10,Font=Enum.Font.Gotham,TextWrapped=true},AboutPage)
-
 --==================================================
--- UNLOCK / START
+-- UNLOCK
 --==================================================
 
 local function UnlockMenu()
-	KeyGui.Enabled=false; Gui.Enabled=true; FloatGui.Enabled=Config.ShowFloatingIcon; ShowPage("MAIN")
-	if Config.UIAnimations then
-		Main.Size=UDim2.fromOffset(480,320)
-		Tween(Main,{Size=UDim2.fromOffset(520,350)},.25)
-	end
+	KeyGui.Enabled=false
+	Gui.Enabled=true
+	FloatGui.Enabled=Config.ShowFloatingIcon
+	ShowPage("MAIN")
 end
 
 local function TryUnlock()
-	if string.upper(KeyBox.Text)==KEY then UnlockMenu()
-	else KeyBox.Text=""; KeyBox.PlaceholderText="WRONG KEY" end
+	if string.upper(KeyBox.Text)==KEY then
+		UnlockMenu()
+	else
+		KeyBox.Text=""
+		KeyBox.PlaceholderText="WRONG KEY"
+	end
 end
+
 Unlock.MouseButton1Click:Connect(TryUnlock)
 KeyBox.FocusLost:Connect(function(enterPressed) if enterPressed then TryUnlock() end end)
 
@@ -597,4 +527,4 @@ FloatGui.Enabled=false
 KeyGui.Enabled=true
 ShowPage("MAIN")
 
-print("MEI HUB V2 loaded successfully. Key: MEI")
+print("MEI HUB V2 loaded. Key: MEI")
